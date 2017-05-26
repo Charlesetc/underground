@@ -31,17 +31,15 @@
 (defn draggable [id]
   (fn [thing]
     [:div.note
-     {:style (calcposition id)}
+     {:style (merge (calcposition id) {:z-index (if (= id @drag-target) 100 1)})}
      [:div.dragbar {:on-mouse-down (fn [e] (reset! drag-target id))}]
      [:div.note-content
         {:id (convert-id id)
          :on-click (fn [e]
-                     (println @positions)
                      (swap! positions assoc-in [id :edit] true)
                      (js/highlight_text_area (convert-id id)))}
              [:textarea.editor {:value (-> @positions id :md)
                                 :on-change (fn [e]
-                                               (println @positions)
                                                (swap! positions assoc-in [id :md] (-> e .-target .-value)))
                                 :on-blur (fn [e]
                                              (swap! positions assoc-in [id :edit] false)
@@ -76,7 +74,6 @@
                                 x (-> @origin :x (+ (-> (/ x0 1) (min 60) (max -60))))
                                 y (-> @origin :y (+ (-> (/ y0 1) (min 60) (max -60))))
                                 ]
-                            (println @last-mouse-position "hi there")
                             (reset! last-mouse-position {:x (.-clientX %) :y (.-clientY %)})
                             (swap! origin assoc :x x)
                             (swap! origin assoc :y y)

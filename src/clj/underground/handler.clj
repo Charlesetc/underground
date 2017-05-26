@@ -36,7 +36,7 @@
 (defn markdown [e]
   (let [mdcontent (-> e :params :content)
         output (:out (sh "pandoc" :in mdcontent))]
-    (println mdcontent output)
+    ; (println mdcontent output)
     output
   ))
 

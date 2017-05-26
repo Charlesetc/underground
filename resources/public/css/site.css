@@ -37,14 +37,18 @@ td {
   border: none;
   resize: none;
   min-height: 20px;
+  min-width:600px;
+  padding-top:20px;
+  font-family: monospace;
 }
 
 .note {
   display:block;
   position:fixed;
   padding: 10px;
+  padding-top:0px;
   min-width: 50px;
-  max-width: 500px;
+  max-width: 600px;
   background: white;
 }
 
@@ -62,7 +66,8 @@ td {
 
 .note .dragbar {
   display:block;
-  height: 8px;
+  height: 12px;
+  border-radius: 0px 0px 3px 3px;
   background: #ccc;
   width:100%;
   cursor: pointer;
