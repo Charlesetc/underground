@@ -16,6 +16,14 @@ function noclick(e) {
   return false;
 }
 
+function fromjson(text) {
+  return JSON.parse(text)
+}
+
+function tojson(obj) {
+  return JSON.stringify(obj)
+}
+
 function removeclass(item) {
   item.className = '';
 }

@@ -2,6 +2,7 @@
     (:require [reagent.core :as reagent :refer [atom]]
               [reagent.session :as session]
               [clojure.string :refer [lower-case]]
+              [clojure.walk :refer [keywordize-keys]]
               [ajax.core :refer [POST]]
               [goog.dom :as dom]
               [goog.array :as array]
@@ -21,6 +22,25 @@
 (def positions (atom {:1 {:x 400 :y 200 :md "# hi there" :html "<h1>hi there</h1>"}
                       :2 {:x 400 :y 400 :md "# you" :html "<h1>you</h1>"}
                       }))
+
+
+(def statenames {:genid gen-id
+                 :origin origin
+                 :positions positions})
+
+(defn put-state [json-state]
+  (let [js-state (.parse js/JSON json-state)
+        clj-state (js->clj js-state)
+        normal-state (keywordize-keys clj-state)]
+     (for [[k v] statenames]
+       (reset! v (k normal-state)))))
+
+(defn get-state []
+  (let [list-state (for [[k v] statenames] [k @v])
+        dict-state (into {} list-state)
+        json-state (.stringify js/JSON (clj->js dict-state))]
+    json-state))
+
 
 ; used for temporary state
 (def last-mouse-position (atom {:x 0 :y 0}))
