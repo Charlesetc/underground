@@ -32,8 +32,10 @@
   (let [js-state (.parse js/JSON json-state)
         clj-state (js->clj js-state)
         normal-state (keywordize-keys clj-state)]
-     (for [[k v] statenames]
-       (reset! v (k normal-state)))))
+    (println normal-state)
+    (doseq [[k v] statenames]
+      (println k)
+      (reset! v (k normal-state)))))
 
 (defn get-state []
   (let [list-state (for [[k v] statenames] [k @v])
@@ -111,8 +113,16 @@
        [:li "New"]]
       [:a [:li {:id :hoveritem
                 :on-mouse-leave #(js/removeclass (.-target %))
+                :on-click (fn [e]
+                            (post "/slate/save" {:slate (get-state) :key "onekey"} (fn [] (comment in the future, check if saved)))
+                            (reset! menu-position {:x -1000 :y -1000})
+                            )
                 } "Save"]]
-      [:a [:li "Load"]]
+      [:a [:li {:on-click (fn [e]
+                            (post "/slate/get" {:key "onekey"} (fn [e] (println e) (put-state e)))
+                            (reset! menu-position {:x -1000 :y -1000})
+                            )
+                } "Load"]]
       [:a [:li "Export"]]
       [:a [:li "Import"]]
       ]

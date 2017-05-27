@@ -57,8 +57,8 @@
   (GET "/about" [] (loading-page))
   ; make this post with anti-forgery:
   (POST "/markdown.txt" [] markdown)
-  (POST "/slate/save" [] redis-set)
-  (POST "/slate/get" [] redis-set)
+  (POST "/slate/save" [] save-slate)
+  (POST "/slate/get" [] get-slate)
   
   (resources "/")
   (not-found "Not Found"))

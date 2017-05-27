@@ -8,5 +8,5 @@
 (defn set [k v]
   (wcar* (car/set k v)))
 
-(defn get [k v]
+(defn get [k]
   (wcar* (car/get k)))
