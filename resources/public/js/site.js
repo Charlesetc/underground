@@ -7,12 +7,18 @@ function get_scroll_width() {
   return window.pageXOffset
 }
 
+function noclick(e) {
+  e.preventDefault();
+  return false;
+}
+
 function fix_text_areas() {
   var textareas = document.getElementsByTagName('textarea');
 
   for (var i= 0; i < textareas.length; ++i) {
     textarea = textareas[i];
     textarea.addEventListener('keydown', autosize);
+    textarea.addEventListener('focus', autosize);
 
     function autosize(){
       var el = this;

@@ -1,20 +1,31 @@
-
 (ns underground.core
     (:require [reagent.core :as reagent :refer [atom]]
               [reagent.session :as session]
-              [ajax.core :refer [GET POST]]
+              [ajax.core :refer [POST]]
               [goog.dom :as dom]
               [goog.array :as array]
               [secretary.core :as secretary :include-macros true]
               [accountant.core :as accountant]))
 
-(def origin (atom {:x 0 :y 0}))
-(def last-mouse-position (atom {:x 0 :y 0}))
-(def drag-target (atom nil))
-(def notes-drag (atom false))
+(defn post [url data handler]
+  (POST url {:params data
+             :format :raw
+             :headers {"X-CSRF-Token" js/csrf-token}
+             :error-handler #(println "post error!" % %2 %3 %4 %5)
+             :handler handler}))
+
+; state that can be saved
+(def gen-id (atom 2))
+(def origin (atom nil))
 (def positions (atom {:1 {:x 400 :y 200 :md "# hi there" :html "<h1>hi there</h1>"}
                       :2 {:x 400 :y 400 :md "# you" :html "<h1>you</h1>"}
                       }))
+
+; used for temporary state
+(def last-mouse-position (atom {:x 0 :y 0}))
+(def menu-position (atom {:x -100 :y -100}))
+(def drag-target (atom nil))
+(def notes-drag (atom false))
 
 (defn calcposition [id]
   (let [{x :x y :y} (id @positions)
@@ -28,32 +39,6 @@
 (defn convert-id [id]
   (str "note" (name id)))
 
-(defn draggable [id]
-  (fn [thing]
-    [:div.note
-     {:style (merge (calcposition id) {:z-index (if (= id @drag-target) 100 1)})}
-     [:div.dragbar {:on-mouse-down (fn [e] (reset! drag-target id))}]
-     [:div.note-content
-        {:id (convert-id id)
-         :on-click (fn [e]
-                     (swap! positions assoc-in [id :edit] true)
-                     (js/highlight_text_area (convert-id id)))}
-             [:textarea.editor {:value (-> @positions id :md)
-                                :on-change (fn [e]
-                                               (swap! positions assoc-in [id :md] (-> e .-target .-value)))
-                                :on-blur (fn [e]
-                                             (swap! positions assoc-in [id :edit] false)
-                                             (POST "/markdown.txt" {:params {:content (-> @positions id :md)}
-                                                                    :format :raw
-                                                                    :headers {"X-CSRF-Token" js/csrf-token}
-                                                                    :error-handler #(println "error!" % %2 %3 %4 %5)
-                                                                    :handler #(swap! positions assoc-in [id :html] %)}))
-                         :style {:display (if (-> @positions id :edit not) "none" "inline")}
-                         }]
-           [:span {:dangerouslySetInnerHTML {:__html (-> @positions id :html)}
-                   :style {:display (if (-> @positions id :edit) "none" "block")}} ]
-       ]
-   ]))
 
 ;; -------------------------
 ;; Views
@@ -80,7 +65,26 @@
                                              ))
       }
      ; dragging things
-     [:h2#title "the underground narwhal"]
+     [:h2#title {:style {:position :relative
+                         :left (:x @origin)
+                         :top (:y @origin)}} "the underground narwhal"]
+     [:nav#menu
+      {:on-mouse-leave #(reset! menu-position {:x -1000 :y -1000})
+       :style {:left (-> @menu-position :x (- 100))
+               :top (-> @menu-position :y (- 80))}}
+      [:a
+       {:on-click #(let [my (.-clientY %)
+                         mx (.-clientX %)]
+                     (reset! menu-position {:x -1000 :y -1000})
+                     (swap! gen-id inc)
+                     (swap! positions assoc (-> @gen-id str keyword) {:x mx :y my :md "# placeholder"})
+                     )}
+       [:li "New"]]
+      [:a [:li "Save"]]
+      [:a [:li "Load"]]
+      [:a [:li "Export"]]
+      [:a [:li "Import"]]
+      ]
      [:div#notes
        {:on-mouse-move (fn [e] (if @drag-target
                                  (let [{x0 :x y0 :y} @origin
@@ -97,10 +101,38 @@
 
         :on-mouse-up (fn [e] (reset! drag-target nil))
         :class (if @drag-target "unselectable")
+        :on-context-menu (fn [e]
+                           (let [my (.-clientY e)
+                                 mx (.-clientX e)
+                                 pos {:x mx :y my}]
+                             (reset! menu-position pos))
+                           (js/noclick e))
         }
-       [(draggable :1)]
-       [(draggable :2)]
-       ; [:div.note (draggable :2 {}) [:p "you"]]
+      (for [id (keys @positions)]
+        [:div.note
+           {:key id
+            :style (merge (calcposition id) {:z-index (if (or (= id @drag-target) (-> @positions id :edit)) 100 1)})}
+           [:div.dragbar {:on-mouse-down (fn [e] (reset! drag-target id))}]
+           [:div.note-content
+              {:id (convert-id id)
+               :on-click (fn [e]
+                           (swap! positions assoc-in [id :edit] true)
+                           (js/highlight_text_area (convert-id id)))}
+                   [:textarea.editor {:value (-> @positions id :md)
+                                      :on-change (fn [e]
+                                                     (swap! positions assoc-in [id :md] (-> e .-target .-value)))
+                                      :on-blur (fn [e]
+                                                 (swap! positions assoc-in [id :edit] false)
+                                                 (post "/markdown.txt" {:content (-> @positions id :md)}
+                                                   #(swap! positions assoc-in [id :html] %)))
+                                       :style {:display (if (-> @positions id :edit not) "none" "inline")}
+                               }]
+                 [:span {:dangerouslySetInnerHTML {:__html (-> @positions id :html)}
+                         :style {:display (if (-> @positions id :edit) "none" "block")}} ]
+             ]
+         ])
+      ; [(draggable :1)]
+      ; [(draggable :2)]
      ]])
 
 (defn current-page []

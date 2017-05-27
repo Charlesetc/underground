@@ -14,6 +14,7 @@
                  [hiccup "1.0.5"]
                  [yogthos/config "0.8"]
                  [cljs-ajax "0.6.0"]
+                 [com.taoensso/carmine "2.16.0"]
                  [org.clojure/clojurescript "1.9.521"
                   :scope "provided"]
                  [secretary "1.2.3"]

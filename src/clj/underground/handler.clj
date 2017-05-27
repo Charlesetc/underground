@@ -1,9 +1,11 @@
 (ns underground.handler
-  (:require [compojure.core :refer [GET POST defroutes]]
+  (:require [underground.redis :as redis]
+            [compojure.core :refer [GET POST defroutes]]
             [compojure.route :refer [not-found resources]]
             [clojure.java.shell :refer [sh]]
             [hiccup.page :refer [include-js include-css html5]]
             [underground.middleware :refer [wrap-middleware]]
+            [ring.middleware.anti-forgery :refer [*anti-forgery-token*]]
             [config.core :refer [env]]))
 
 (def mount-target
@@ -26,8 +28,9 @@
     (head)
     [:body {:class "body-container"}
      [:script (str "var csrf_token = \""
-                   (get-in req [:session
-                                :ring.middleware.anti-forgery/anti-forgery-token])
+                   *anti-forgery-token*
+                   ; (get-in req [:session
+                   ;              :ring.middleware.anti-forgery/anti-forgery-token])
                    "\";")]
      mount-target
      (include-js "/js/app.js")]))
@@ -40,11 +43,22 @@
     output
   ))
 
+(defn save-slate [e]
+  (let [slate (-> e :params :slate)
+        key (-> e :params :key)]
+    (redis/set (str "slate/" key) slate)))
+
+(defn get-slate [e]
+  (let [key (-> e :params :key)]
+    (redis/get (str "slate/" key))))
+
 (defroutes routes
   (GET "/" [] loading-page)
   (GET "/about" [] (loading-page))
   ; make this post with anti-forgery:
   (POST "/markdown.txt" [] markdown)
+  (POST "/slate/save" [] redis-set)
+  (POST "/slate/get" [] redis-set)
   
   (resources "/")
   (not-found "Not Found"))

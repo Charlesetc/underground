@@ -9,18 +9,68 @@ body {
   margin: 0 auto;
   padding-top: 10px;
   -webkit-font-smoothing: antialiased;
-  font-size: 24px;
+  font-size: 16px;
   color: #333;
-  font-size: 20px;
+}
+
+h1 {
+  font-family: serif;
+  font-weight: 100;
+}
+
+h2, h3 {
+  font-weight: normal;
 }
 
 table {
-  padding: 10px;
   border: 1px solid grey;
+  border-collapse: collapse;
 }
 
-td {
+body tr.header {
+  background: #eee;
+  border-bottom: 5px solid transparent;
+}
+
+td, th {
+  text-align: left;
+  padding: 3px 10px;
   padding-right: 30px;
+}
+
+#menu {
+  position: fixed;
+  opacity: 0;
+  z-index:200;
+  width:200px;
+  background: white;
+  list-style: none;
+  box-shadow: 0px 0px 20px -5px grey;
+  border: 1px solid #aaa;
+}
+
+#menu li {
+  line-height: 50px;
+  text-align:center;
+}
+
+#menu a {
+  font-family: sans-serif;
+  font-weight: 100;
+  font-size: 22px;
+  text-decoration: none;
+  cursor: pointer;
+  color: black;
+}
+
+#menu li:hover {
+  background: rgb(159.40, 167.77, 255.00);
+  color: white;
+  cursor: pointer;
+}
+
+#menu:hover {
+  opacity: 1;
 }
 
 #notes {
@@ -33,7 +83,7 @@ td {
 
 .editor {
   outline: none;
-  font-size: 20px;
+  font-size: 18px;
   border: none;
   resize: none;
   min-height: 20px;
@@ -76,7 +126,7 @@ td {
 #title {
   text-align:center;
   color:rgb(159.40, 167.77, 255.00);
-  font-size: 60px;
+  font-size: 40px;
   font-weight: 100;
 }
 
