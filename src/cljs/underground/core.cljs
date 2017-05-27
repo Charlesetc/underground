@@ -1,6 +1,7 @@
 (ns underground.core
     (:require [reagent.core :as reagent :refer [atom]]
               [reagent.session :as session]
+              [clojure.string :refer [lower-case]]
               [ajax.core :refer [POST]]
               [goog.dom :as dom]
               [goog.array :as array]
@@ -39,10 +40,18 @@
 (defn convert-id [id]
   (str "note" (name id)))
 
+(defn getparent [element class]
+  (if (-> element .-tagName lower-case (= "body"))
+    nil
+    (if (-> element .-className lower-case (= class))
+      element
+      (-> element .-parentNode getparent))))
+
 
 ;; -------------------------
 ;; Views
 
+; clean this up
 (defn home-page []
     [:div#home-page
      {
@@ -77,10 +86,12 @@
                          mx (.-clientX %)]
                      (reset! menu-position {:x -1000 :y -1000})
                      (swap! gen-id inc)
-                     (swap! positions assoc (-> @gen-id str keyword) {:x mx :y my :md "# placeholder"})
+                     (swap! positions assoc (-> @gen-id str keyword) {:x mx :y my :md "## placeholder" :html "<h2>placeholder</h2>"})
                      )}
        [:li "New"]]
-      [:a [:li "Save"]]
+      [:a [:li {:id :hoveritem
+                :on-mouse-leave #(js/removeclass (.-target %))
+                } "Save"]]
       [:a [:li "Load"]]
       [:a [:li "Export"]]
       [:a [:li "Import"]]
@@ -104,20 +115,23 @@
         :on-context-menu (fn [e]
                            (let [my (.-clientY e)
                                  mx (.-clientX e)
+                                 ; not used yet but will be probably
+                                 note (-> e .-target (getparent "note"))
                                  pos {:x mx :y my}]
                              (reset! menu-position pos))
                            (js/noclick e))
         }
-      (for [id (keys @positions)]
-        [:div.note
-           {:key id
-            :style (merge (calcposition id) {:z-index (if (or (= id @drag-target) (-> @positions id :edit)) 100 1)})}
-           [:div.dragbar {:on-mouse-down (fn [e] (reset! drag-target id))}]
-           [:div.note-content
-              {:id (convert-id id)
-               :on-click (fn [e]
-                           (swap! positions assoc-in [id :edit] true)
-                           (js/highlight_text_area (convert-id id)))}
+      (doall
+        (for [id (keys @positions)]
+          [:div.note
+             {:key id
+              :style (merge (calcposition id) {:z-index (if (or (= id @drag-target) (-> @positions id :edit)) 100 1)})}
+             [:div.dragbar {:on-mouse-down (fn [e] (reset! drag-target id))}]
+             [:div.note-content
+                {:id (convert-id id)
+                 :on-click (fn [e]
+                             (swap! positions assoc-in [id :edit] true)
+                             (js/highlight_text_area (convert-id id)))}
                    [:textarea.editor {:value (-> @positions id :md)
                                       :on-change (fn [e]
                                                      (swap! positions assoc-in [id :md] (-> e .-target .-value)))
@@ -125,12 +139,13 @@
                                                  (swap! positions assoc-in [id :edit] false)
                                                  (post "/markdown.txt" {:content (-> @positions id :md)}
                                                    #(swap! positions assoc-in [id :html] %)))
-                                       :style {:display (if (-> @positions id :edit not) "none" "inline")}
+                                       :style {:display (if (-> @positions id :edit not) "none" "block")}
                                }]
-                 [:span {:dangerouslySetInnerHTML {:__html (-> @positions id :html)}
-                         :style {:display (if (-> @positions id :edit) "none" "block")}} ]
-             ]
-         ])
+                   [:span {:dangerouslySetInnerHTML {:__html (-> @positions id :html)}
+                           :style {:display (if (-> @positions id :edit) "none" "block")}} ]
+               ]
+           ])
+       )
       ; [(draggable :1)]
       ; [(draggable :2)]
      ]])

@@ -40,7 +40,6 @@ td, th {
 
 #menu {
   position: fixed;
-  opacity: 0;
   z-index:200;
   width:200px;
   background: white;
@@ -63,14 +62,11 @@ td, th {
   color: black;
 }
 
-#menu li:hover {
+#menu li:hover, #menu li.hover {
   background: rgb(159.40, 167.77, 255.00);
+  opacity: 1;
   color: white;
   cursor: pointer;
-}
-
-#menu:hover {
-  opacity: 1;
 }
 
 #notes {

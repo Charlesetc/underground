@@ -1,15 +1,23 @@
 
+var l = console.log;
+
 function get_scroll_height() {
-  return window.pageYOffset
+  return window.pageYOffset;
 }
 
 function get_scroll_width() {
-  return window.pageXOffset
+  return window.pageXOffset;
 }
 
 function noclick(e) {
+  var item = document.getElementById('hoveritem');
+  item.className = 'hover';
   e.preventDefault();
   return false;
+}
+
+function removeclass(item) {
+  item.className = '';
 }
 
 function fix_text_areas() {
