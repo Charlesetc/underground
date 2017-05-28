@@ -6,3 +6,6 @@
 * Recognize subdomains
 * Local storage on each path
 
+* move with arrow keys
+
+* arrows
