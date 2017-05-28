@@ -24,7 +24,8 @@ function tojson(obj) {
   return JSON.stringify(obj)
 }
 
-function removeclass(item) {
+function removeclasshoveritem() {
+  var item = document.getElementById('hoveritem');
   item.className = '';
 }
 

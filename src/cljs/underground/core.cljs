@@ -73,6 +73,94 @@
 ;; -------------------------
 ;; Views
 
+(defn menu []
+     [:nav#menu
+      {:on-mouse-leave #(reset! menu-position {:x -1000 :y -1000})
+       :on-mouse-move #(js/removeclasshoveritem)
+       :style {:left (-> @menu-position :x (- 100))
+               :top (-> @menu-position :y (- 80))}}
+      [:a
+       {:on-click #(let [my (.-clientY %)
+                         mx (.-clientX %)]
+                     (reset! menu-position {:x -1000 :y -1000})
+                     (swap! gen-id inc)
+                     (swap! positions assoc (-> @gen-id str keyword) {:x mx :y my :md "## placeholder" :html "<h2>placeholder</h2>"})
+                     )}
+       [:li "New"]]
+      [:a [:li {:id :hoveritem
+                :on-mouse-leave #(js/removeclasshoveritem)
+                :on-mouse-move #(js/removeclasshoveritem)
+                :on-click (fn [e]
+                            (post "/slate/save" {:slate (get-state) :key "onekey"} (fn [] (comment in the future, check if saved)))
+                            (reset! menu-position {:x -1000 :y -1000})
+                            )
+                } "Save"]]
+      [:a [:li {:on-click (fn [e]
+                            (post "/slate/get" {:key "onekey"} (fn [e] (println e) (put-state e)))
+                            (reset! menu-position {:x -1000 :y -1000})
+                            )
+                } "Load"]]
+      [:a [:li "Export"]]
+      [:a [:li "Import"]]
+      ])
+
+
+
+(defn notes []
+  [:div#notes
+   {:on-mouse-move (fn [e] (if @drag-target
+                             (let [{x0 :x y0 :y} @origin
+                                   x (.-clientX e)
+                                   y (.-clientY e)
+                                   x (- x x0)
+                                   y (- y y0)
+                                   ; x (+ x (js/get_scroll_width))
+                                   ; y (+ y (js/get_scroll_height))
+                                   ]
+                               (swap! positions assoc-in [@drag-target :x] x)
+                               (swap! positions assoc-in [@drag-target :y] y))
+                             ))
+
+    :on-mouse-up (fn [e] (reset! drag-target nil))
+    :class (if @drag-target "unselectable")
+    :on-context-menu (fn [e]
+                       (let [my (.-clientY e)
+                             mx (.-clientX e)
+                             ; not used yet but will be probably
+                             note (-> e .-target (getparent "note"))
+                             pos {:x mx :y my}]
+                         (reset! menu-position pos))
+                       (js/noclick e))
+    }
+   (doall
+    (for [id (keys @positions)]
+      [:div.note
+       {:key id
+        :style (merge (calcposition id) {:z-index (if (or (= id @drag-target) (-> @positions id :edit)) 100 1)})}
+       [:div.dragbar {:on-mouse-down (fn [e] (reset! drag-target id))}]
+       [:div.note-content
+        {:id (convert-id id)
+         :on-click (fn [e]
+                     (swap! positions assoc-in [id :edit] true)
+                     (js/highlight_text_area (convert-id id)))}
+        [:textarea.editor {:value (-> @positions id :md)
+                           :on-change (fn [e]
+                                        (swap! positions assoc-in [id :md] (-> e .-target .-value)))
+                           :on-blur (fn [e]
+                                      (swap! positions assoc-in [id :edit] false)
+                                      (post "/markdown.txt" {:content (-> @positions id :md)}
+                                            #(swap! positions assoc-in [id :html] %)))
+                           :style {:display (if (-> @positions id :edit not) "none" "block")}
+                           }]
+        [:span {:dangerouslySetInnerHTML {:__html (-> @positions id :html)}
+                :style {:display (if (-> @positions id :edit) "none" "block")}} ]
+        ]
+       ])
+    )
+   ; [(draggable :1)]
+   ; [(draggable :2)]
+   ])
+
 ; clean this up
 (defn home-page []
     [:div#home-page
@@ -99,109 +187,32 @@
      [:h2#title {:style {:position :relative
                          :left (:x @origin)
                          :top (:y @origin)}} "the underground narwhal"]
-     [:nav#menu
-      {:on-mouse-leave #(reset! menu-position {:x -1000 :y -1000})
-       :style {:left (-> @menu-position :x (- 100))
-               :top (-> @menu-position :y (- 80))}}
-      [:a
-       {:on-click #(let [my (.-clientY %)
-                         mx (.-clientX %)]
-                     (reset! menu-position {:x -1000 :y -1000})
-                     (swap! gen-id inc)
-                     (swap! positions assoc (-> @gen-id str keyword) {:x mx :y my :md "## placeholder" :html "<h2>placeholder</h2>"})
-                     )}
-       [:li "New"]]
-      [:a [:li {:id :hoveritem
-                :on-mouse-leave #(js/removeclass (.-target %))
-                :on-click (fn [e]
-                            (post "/slate/save" {:slate (get-state) :key "onekey"} (fn [] (comment in the future, check if saved)))
-                            (reset! menu-position {:x -1000 :y -1000})
-                            )
-                } "Save"]]
-      [:a [:li {:on-click (fn [e]
-                            (post "/slate/get" {:key "onekey"} (fn [e] (println e) (put-state e)))
-                            (reset! menu-position {:x -1000 :y -1000})
-                            )
-                } "Load"]]
-      [:a [:li "Export"]]
-      [:a [:li "Import"]]
-      ]
-     [:div#notes
-       {:on-mouse-move (fn [e] (if @drag-target
-                                 (let [{x0 :x y0 :y} @origin
-                                       x (.-clientX e)
-                                       y (.-clientY e)
-                                       x (- x x0)
-                                       y (- y y0)
-                                       ; x (+ x (js/get_scroll_width))
-                                       ; y (+ y (js/get_scroll_height))
-                                       ]
-                                   (swap! positions assoc-in [@drag-target :x] x)
-                                   (swap! positions assoc-in [@drag-target :y] y))
-                                 ))
-
-        :on-mouse-up (fn [e] (reset! drag-target nil))
-        :class (if @drag-target "unselectable")
-        :on-context-menu (fn [e]
-                           (let [my (.-clientY e)
-                                 mx (.-clientX e)
-                                 ; not used yet but will be probably
-                                 note (-> e .-target (getparent "note"))
-                                 pos {:x mx :y my}]
-                             (reset! menu-position pos))
-                           (js/noclick e))
-        }
-      (doall
-        (for [id (keys @positions)]
-          [:div.note
-             {:key id
-              :style (merge (calcposition id) {:z-index (if (or (= id @drag-target) (-> @positions id :edit)) 100 1)})}
-             [:div.dragbar {:on-mouse-down (fn [e] (reset! drag-target id))}]
-             [:div.note-content
-                {:id (convert-id id)
-                 :on-click (fn [e]
-                             (swap! positions assoc-in [id :edit] true)
-                             (js/highlight_text_area (convert-id id)))}
-                   [:textarea.editor {:value (-> @positions id :md)
-                                      :on-change (fn [e]
-                                                     (swap! positions assoc-in [id :md] (-> e .-target .-value)))
-                                      :on-blur (fn [e]
-                                                 (swap! positions assoc-in [id :edit] false)
-                                                 (post "/markdown.txt" {:content (-> @positions id :md)}
-                                                   #(swap! positions assoc-in [id :html] %)))
-                                       :style {:display (if (-> @positions id :edit not) "none" "block")}
-                               }]
-                   [:span {:dangerouslySetInnerHTML {:__html (-> @positions id :html)}
-                           :style {:display (if (-> @positions id :edit) "none" "block")}} ]
-               ]
-           ])
-       )
-      ; [(draggable :1)]
-      ; [(draggable :2)]
-     ]])
+     [menu]
+     [notes]
+])
 
 (defn current-page []
-  [:div [(session/get :current-page)]])
+  [:div home-page])
 
 ;; -------------------------
 ;; Routes
 
-(secretary/defroute "/" []
-  (session/put! :current-page #'home-page))
+; (secretary/defroute "/" []
+;   (session/put! :current-page #'home-page))
 
 ;; -------------------------
 ;; Initialize app
 
 (defn mount-root []
-  (reagent/render [current-page] (.getElementById js/document "app")))
+  (reagent/render [home-page] (.getElementById js/document "app")))
 
 (defn init! []
-  (accountant/configure-navigation!
-    {:nav-handler
-     (fn [path]
-       (secretary/dispatch! path))
-     :path-exists?
-     (fn [path]
-       (secretary/locate-route path))})
-  (accountant/dispatch-current!)
+  ; (accountant/configure-navigation!
+  ;   {:nav-handler
+  ;    (fn [path]
+  ;      (secretary/dispatch! path))
+  ;    :path-exists?
+  ;    (fn [path]
+  ;      (secretary/locate-route path))})
+  ; (accountant/dispatch-current!)
   (mount-root))

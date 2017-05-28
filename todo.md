@@ -7,5 +7,6 @@
 * Local storage on each path
 
 * move with arrow keys
-
 * arrows
+* delete arrows
+* delete notes

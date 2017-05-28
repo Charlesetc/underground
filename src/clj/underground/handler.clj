@@ -1,6 +1,6 @@
 (ns underground.handler
   (:require [underground.redis :as redis]
-            [compojure.core :refer [GET POST defroutes]]
+            [compojure.core :refer [GET POST rfn defroutes]]
             [compojure.route :refer [not-found resources]]
             [clojure.java.shell :refer [sh]]
             [hiccup.page :refer [include-js include-css html5]]
@@ -54,13 +54,14 @@
 
 (defroutes routes
   (GET "/" [] loading-page)
-  (GET "/about" [] (loading-page))
+  (GET "/about" [] loading-page)
   ; make this post with anti-forgery:
   (POST "/markdown.txt" [] markdown)
   (POST "/slate/save" [] save-slate)
   (POST "/slate/get" [] get-slate)
   
   (resources "/")
-  (not-found "Not Found"))
+  (rfn [] loading-page))
+  ; (not-found "Not Found"))
 
 (def app (wrap-middleware #'routes))
