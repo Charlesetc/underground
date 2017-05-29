@@ -1,7 +1,7 @@
 (ns underground.core
     (:require [reagent.core :as reagent :refer [atom]]
               [reagent.session :as session]
-              [clojure.string :refer [lower-case]]
+              [clojure.string :refer [lower-case replace]]
               [clojure.walk :refer [keywordize-keys]]
               [ajax.core :refer [POST]]
               [goog.dom :as dom]
@@ -70,13 +70,13 @@
       (-> element .-parentNode getparent))))
 
 
-(defn network-save-state []
+(defn ^:export network-save-state []
   (post "/slate/save" {:slate (get-state) :key @urlkey} (fn [e] (comment in the future, check if saved)))
-  (reset! menu-position {:x -1000 :y -1000}))
+  )
 
 (defn network-get-state []
   (post "/slate/get" {:key @urlkey} (fn [e] (put-state e)))
-  (reset! menu-position {:x -1000 :y -1000}))
+  )
 
 ;; -------------------------
 ;; Views
@@ -98,11 +98,11 @@
     [:a [:li {:id :hoveritem
               :on-mouse-leave #(js/removeclasshoveritem)
               :on-mouse-move #(js/removeclasshoveritem)
-              :on-click network-save-state
-              } "Save"]]
-    [:a [:li {:on-click network-get-state
-              } "Load"]]
-    [:a [:li "Export"]]
+              ; :on-click (fn [e] (network-save-state e) (reset! menu-position {:x -1000 :y -1000}))
+              } "Export"]]
+    ; [:a [:li {:on-click network-get-state
+    ;           } "Load"]]
+    ; [:a [:li "Export"]]
     [:a [:li "Import"]]
     ])
 
@@ -192,8 +192,13 @@
       }
      ; dragging things
      [:h2#title {:style {:position :relative
+                         :text-align :center
                          :left (:x @origin)
-                         :top (:y @origin)}} "the underground narwhal"]
+                         :top (:y @origin)}}
+      (if (= @urlkey "/")
+        "the underground narwhal"
+        ; TODO: make each section a link!
+        (replace @urlkey "/" " / "))]
      [menu]
      [notes]
 ])
@@ -204,12 +209,7 @@
 ;; -------------------------
 ;; Routes
 
-(secretary/defroute "/" []
-  (reset! urlkey (-> js/window .-location .-pathname))
-  (network-get-state)
-  (session/put! :current-page #'home-page))
-
-(secretary/defroute "/charles/something" []
+(secretary/defroute "*" [e]
   (reset! urlkey (-> js/window .-location .-pathname))
   (network-get-state)
   (session/put! :current-page #'home-page))
