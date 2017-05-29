@@ -20,9 +20,6 @@
 (def gen-id (atom 0))
 (def origin (atom nil))
 (def positions (atom {}))
-; (def positions (atom {:1 {:x 400 :y 200 :md "# hi there" :html "<h1>hi there</h1>"}
-;                       :2 {:x 400 :y 400 :md "# you" :html "<h1>you</h1>"}
-;                       }))
 
 
 (def statenames {:genid gen-id
@@ -94,39 +91,27 @@
              :top (-> @menu-position :y (- 80))}}
     [:a [:li {:on-click reset-menu-position
               } "Arrow"]]
-    ; [:a
-    ;  [:li "New"]]
-    ; [:a [:li {:id :hoveritem
-    ;           :on-mouse-leave #(js/removeclasshoveritem)
-    ;           :on-mouse-move #(js/removeclasshoveritem)
-    ;           :on-click reset-menu-position
-    ;           } "New"]]
     [:a [:li {:id :hoveritem
               :on-click #(let [my (.-clientY %)
-                               mx (.-clientX %)]
+                               mx (.-clientX %)
+                               {ox :x oy :y} @origin
+                               x (- mx ox)
+                               y (- my oy)]
                            (reset-menu-position)
                            (swap! gen-id inc)
                            (swap! positions assoc
                                   (-> @gen-id str keyword)
-                                  {:x mx :y my :md "## placeholder" :html "<h2>placeholder</h2>"})
+                                  {:x x :y y :md "## placeholder" :html "<h2>placeholder</h2>"})
                            )
               :on-mouse-leave #(js/removeclasshoveritem)
               :on-mouse-move #(js/removeclasshoveritem)
-              ; :on-click reset-menu-position
               } "New"]]
-    ; [:a [:li {:on-click network-get-state
-    ;           } "Load"]]
-    ; [:a [:li "Export"]]
     (if @clicked-note 
       [:a [:li {:on-click (fn [e] 
                             (swap! positions dissoc @clicked-note)
                             (reset-menu-position)
                             )
                 } "Delete"]])
-    [:a [:li {:on-click reset-menu-position
-              } "Export"]]
-    [:a [:li {:on-click reset-menu-position
-              } "Import"]]
     ])
 
 
