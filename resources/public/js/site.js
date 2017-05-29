@@ -47,8 +47,6 @@ function fix_text_areas() {
       },0);
     }
   }
-
-  setTimeout(fix_text_areas, 1000);
 }
 
 function everything() {

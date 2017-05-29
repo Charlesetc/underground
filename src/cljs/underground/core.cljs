@@ -143,17 +143,21 @@
          :on-click (fn [e]
                      (swap! positions assoc-in [id :edit] true)
                      (js/highlight_text_area (convert-id id)))}
-        [:textarea.editor {:value (-> @positions id :md)
-                           :on-change (fn [e]
-                                        (swap! positions assoc-in [id :md] (-> e .-target .-value)))
-                           :on-blur (fn [e]
-                                      (swap! positions assoc-in [id :edit] false)
-                                      (post "/markdown.txt" {:content (-> @positions id :md)}
-                                            #(swap! positions assoc-in [id :html] %)))
-                           :style {:display (if (-> @positions id :edit not) "none" "block")}
-                           }]
-        [:span {:dangerouslySetInnerHTML {:__html (-> @positions id :html)}
-                :style {:display (if (-> @positions id :edit) "none" "block")}} ]
+        (if (-> @positions id :edit)
+          (do
+            (reagent/after-render #(js/fix_text_areas))
+            [:textarea.editor {:value (-> @positions id :md)
+                               :on-change (fn [e]
+                                            (swap! positions assoc-in [id :md] (-> e .-target .-value)))
+                               :on-blur (fn [e]
+                                          (swap! positions assoc-in [id :edit] false)
+                                          (post "/markdown.txt" {:content (-> @positions id :md)}
+                                                #(swap! positions assoc-in [id :html] %)))
+                               ; :component-will-mount #(js/alert "Hi!")
+                               :style {:display (if (-> @positions id :edit not) "none" "block")}
+                               }])
+          [:span {:dangerouslySetInnerHTML {:__html (-> @positions id :html)}
+                  :style {:display (if (-> @positions id :edit) "none" "block")}} ])
         ]
        ])
     )
