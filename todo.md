@@ -10,3 +10,5 @@
 * arrows
 * delete arrows
 * delete notes
+
+* css in the note

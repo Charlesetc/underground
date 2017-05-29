@@ -17,11 +17,12 @@
              :handler handler}))
 
 ; state that can be saved
-(def gen-id (atom 2))
+(def gen-id (atom 0))
 (def origin (atom nil))
-(def positions (atom {:1 {:x 400 :y 200 :md "# hi there" :html "<h1>hi there</h1>"}
-                      :2 {:x 400 :y 400 :md "# you" :html "<h1>you</h1>"}
-                      }))
+(def positions (atom {}))
+; (def positions (atom {:1 {:x 400 :y 200 :md "# hi there" :html "<h1>hi there</h1>"}
+;                       :2 {:x 400 :y 400 :md "# you" :html "<h1>you</h1>"}
+;                       }))
 
 
 (def statenames {:genid gen-id
@@ -32,9 +33,7 @@
   (let [js-state (.parse js/JSON json-state)
         clj-state (js->clj js-state)
         normal-state (keywordize-keys clj-state)]
-    (println normal-state)
     (doseq [[k v] statenames]
-      (println k)
       (reset! v (k normal-state)))))
 
 (defn get-state []
@@ -49,6 +48,7 @@
 (def menu-position (atom {:x -100 :y -100}))
 (def drag-target (atom nil))
 (def notes-drag (atom false))
+(def urlkey (atom "/"))
 
 (defn calcposition [id]
   (let [{x :x y :y} (id @positions)
@@ -70,39 +70,41 @@
       (-> element .-parentNode getparent))))
 
 
+(defn network-save-state []
+  (post "/slate/save" {:slate (get-state) :key @urlkey} (fn [e] (comment in the future, check if saved)))
+  (reset! menu-position {:x -1000 :y -1000}))
+
+(defn network-get-state []
+  (post "/slate/get" {:key @urlkey} (fn [e] (put-state e)))
+  (reset! menu-position {:x -1000 :y -1000}))
+
 ;; -------------------------
 ;; Views
 
 (defn menu []
-     [:nav#menu
-      {:on-mouse-leave #(reset! menu-position {:x -1000 :y -1000})
-       :on-mouse-move #(js/removeclasshoveritem)
-       :style {:left (-> @menu-position :x (- 100))
-               :top (-> @menu-position :y (- 80))}}
-      [:a
-       {:on-click #(let [my (.-clientY %)
-                         mx (.-clientX %)]
-                     (reset! menu-position {:x -1000 :y -1000})
-                     (swap! gen-id inc)
-                     (swap! positions assoc (-> @gen-id str keyword) {:x mx :y my :md "## placeholder" :html "<h2>placeholder</h2>"})
-                     )}
-       [:li "New"]]
-      [:a [:li {:id :hoveritem
-                :on-mouse-leave #(js/removeclasshoveritem)
-                :on-mouse-move #(js/removeclasshoveritem)
-                :on-click (fn [e]
-                            (post "/slate/save" {:slate (get-state) :key "onekey"} (fn [] (comment in the future, check if saved)))
-                            (reset! menu-position {:x -1000 :y -1000})
-                            )
-                } "Save"]]
-      [:a [:li {:on-click (fn [e]
-                            (post "/slate/get" {:key "onekey"} (fn [e] (println e) (put-state e)))
-                            (reset! menu-position {:x -1000 :y -1000})
-                            )
-                } "Load"]]
-      [:a [:li "Export"]]
-      [:a [:li "Import"]]
-      ])
+   [:nav#menu
+    {:on-mouse-leave #(reset! menu-position {:x -1000 :y -1000})
+     :on-mouse-move #(js/removeclasshoveritem)
+     :style {:left (-> @menu-position :x (- 100))
+             :top (-> @menu-position :y (- 80))}}
+    [:a
+     {:on-click #(let [my (.-clientY %)
+                       mx (.-clientX %)]
+                   (reset! menu-position {:x -1000 :y -1000})
+                   (swap! gen-id inc)
+                   (swap! positions assoc (-> @gen-id str keyword) {:x mx :y my :md "## placeholder" :html "<h2>placeholder</h2>"})
+                   )}
+     [:li "New"]]
+    [:a [:li {:id :hoveritem
+              :on-mouse-leave #(js/removeclasshoveritem)
+              :on-mouse-move #(js/removeclasshoveritem)
+              :on-click network-save-state
+              } "Save"]]
+    [:a [:li {:on-click network-get-state
+              } "Load"]]
+    [:a [:li "Export"]]
+    [:a [:li "Import"]]
+    ])
 
 
 
@@ -141,8 +143,11 @@
        [:div.note-content
         {:id (convert-id id)
          :on-click (fn [e]
-                     (swap! positions assoc-in [id :edit] true)
-                     (js/highlight_text_area (convert-id id)))}
+                     (if (-> e .-target .-tagName lower-case (= "a") not)
+                       (do
+                         (swap! positions assoc-in [id :edit] true)
+                         (js/highlight_text_area (convert-id id))
+                        )))}
         (if (-> @positions id :edit)
           (do
             (reagent/after-render #(js/fix_text_areas))
@@ -161,8 +166,6 @@
         ]
        ])
     )
-   ; [(draggable :1)]
-   ; [(draggable :2)]
    ])
 
 ; clean this up
@@ -196,27 +199,34 @@
 ])
 
 (defn current-page []
-  [:div home-page])
+  [:div [(session/get :current-page)]])
 
 ;; -------------------------
 ;; Routes
 
-; (secretary/defroute "/" []
-;   (session/put! :current-page #'home-page))
+(secretary/defroute "/" []
+  (reset! urlkey (-> js/window .-location .-pathname))
+  (network-get-state)
+  (session/put! :current-page #'home-page))
+
+(secretary/defroute "/charles/something" []
+  (reset! urlkey (-> js/window .-location .-pathname))
+  (network-get-state)
+  (session/put! :current-page #'home-page))
 
 ;; -------------------------
 ;; Initialize app
 
 (defn mount-root []
-  (reagent/render [home-page] (.getElementById js/document "app")))
+  (reagent/render [current-page] (.getElementById js/document "app")))
 
 (defn init! []
-  ; (accountant/configure-navigation!
-  ;   {:nav-handler
-  ;    (fn [path]
-  ;      (secretary/dispatch! path))
-  ;    :path-exists?
-  ;    (fn [path]
-  ;      (secretary/locate-route path))})
-  ; (accountant/dispatch-current!)
+  (accountant/configure-navigation!
+    {:nav-handler
+     (fn [path]
+       (secretary/dispatch! path))
+     :path-exists?
+     (fn [path]
+       (secretary/locate-route path))})
+  (accountant/dispatch-current!)
   (mount-root))

@@ -50,11 +50,12 @@ function fix_text_areas() {
 }
 
 function everything() {
-  fix_text_areas()
+  fix_text_areas();
 }
 
 function highlight_text_area(id) {
   var note = document.getElementById(id);
+  console.log("hi there!!", note.children);
   setTimeout(function () {note.children[0].focus()}, 100);
 }
 
