@@ -120,7 +120,8 @@ td, th {
 }
 
 #title {
-  text-align:center;
+  text-align:left;
+  padding-left:60px;
   color:rgb(159.40, 167.77, 255.00);
   font-size: 40px;
   font-weight: 100;

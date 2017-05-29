@@ -49,6 +49,7 @@
 (def drag-target (atom nil))
 (def notes-drag (atom false))
 (def urlkey (atom "/"))
+(def clicked-note (atom nil))
 
 (defn calcposition [id]
   (let [{x :x y :y} (id @positions)
@@ -78,32 +79,54 @@
   (post "/slate/get" {:key @urlkey} (fn [e] (put-state e)))
   )
 
+(defn reset-menu-position []
+  (reset! clicked-note nil)
+  (reset! menu-position {:x -1000 :y -1000}))
+
 ;; -------------------------
 ;; Views
 
 (defn menu []
    [:nav#menu
-    {:on-mouse-leave #(reset! menu-position {:x -1000 :y -1000})
+    {:on-mouse-leave reset-menu-position
      :on-mouse-move #(js/removeclasshoveritem)
      :style {:left (-> @menu-position :x (- 100))
              :top (-> @menu-position :y (- 80))}}
-    [:a
-     {:on-click #(let [my (.-clientY %)
-                       mx (.-clientX %)]
-                   (reset! menu-position {:x -1000 :y -1000})
-                   (swap! gen-id inc)
-                   (swap! positions assoc (-> @gen-id str keyword) {:x mx :y my :md "## placeholder" :html "<h2>placeholder</h2>"})
-                   )}
-     [:li "New"]]
+    [:a [:li {:on-click reset-menu-position
+              } "Arrow"]]
+    ; [:a
+    ;  [:li "New"]]
+    ; [:a [:li {:id :hoveritem
+    ;           :on-mouse-leave #(js/removeclasshoveritem)
+    ;           :on-mouse-move #(js/removeclasshoveritem)
+    ;           :on-click reset-menu-position
+    ;           } "New"]]
     [:a [:li {:id :hoveritem
+              :on-click #(let [my (.-clientY %)
+                               mx (.-clientX %)]
+                           (reset-menu-position)
+                           (swap! gen-id inc)
+                           (swap! positions assoc
+                                  (-> @gen-id str keyword)
+                                  {:x mx :y my :md "## placeholder" :html "<h2>placeholder</h2>"})
+                           )
               :on-mouse-leave #(js/removeclasshoveritem)
               :on-mouse-move #(js/removeclasshoveritem)
-              ; :on-click (fn [e] (network-save-state e) (reset! menu-position {:x -1000 :y -1000}))
-              } "Export"]]
+              ; :on-click reset-menu-position
+              } "New"]]
     ; [:a [:li {:on-click network-get-state
     ;           } "Load"]]
     ; [:a [:li "Export"]]
-    [:a [:li "Import"]]
+    (if @clicked-note 
+      [:a [:li {:on-click (fn [e] 
+                            (swap! positions dissoc @clicked-note)
+                            (reset-menu-position)
+                            )
+                } "Delete"]])
+    [:a [:li {:on-click reset-menu-position
+              } "Export"]]
+    [:a [:li {:on-click reset-menu-position
+              } "Import"]]
     ])
 
 
@@ -116,8 +139,6 @@
                                    y (.-clientY e)
                                    x (- x x0)
                                    y (- y y0)
-                                   ; x (+ x (js/get_scroll_width))
-                                   ; y (+ y (js/get_scroll_height))
                                    ]
                                (swap! positions assoc-in [@drag-target :x] x)
                                (swap! positions assoc-in [@drag-target :y] y))
@@ -128,11 +149,12 @@
     :on-context-menu (fn [e]
                        (let [my (.-clientY e)
                              mx (.-clientX e)
-                             ; not used yet but will be probably
-                             note (-> e .-target (getparent "note"))
+                             note (-> e .-target (getparent "note-content"))
+                             note-id (if note (-> note .-id (replace "note" "") keyword))
                              pos {:x mx :y my}]
-                         (reset! menu-position pos))
-                       (js/noclick e))
+                         (reset! menu-position pos)
+                         (reset! clicked-note note-id)
+                         (js/noclick e)))
     }
    (doall
     (for [id (keys @positions)]
@@ -158,7 +180,6 @@
                                           (swap! positions assoc-in [id :edit] false)
                                           (post "/markdown.txt" {:content (-> @positions id :md)}
                                                 #(swap! positions assoc-in [id :html] %)))
-                               ; :component-will-mount #(js/alert "Hi!")
                                :style {:display (if (-> @positions id :edit not) "none" "block")}
                                }])
           [:span {:dangerouslySetInnerHTML {:__html (-> @positions id :html)}
@@ -168,7 +189,6 @@
     )
    ])
 
-; clean this up
 (defn home-page []
     [:div#home-page
      {
@@ -178,8 +198,6 @@
         :on-mouse-up #(reset! notes-drag false)
         :on-mouse-move #(if @notes-drag
                           (let [{lastx :x lasty :y} @last-mouse-position
-                                ; midx (-> js/window .-innerWidth (/ 2))
-                                ; midy (-> js/window .-innerHeight (/ 2))
                                 x0 (-> % .-clientX (- lastx))
                                 y0 (-> % .-clientY (- lasty))
                                 x (-> @origin :x (+ (-> (/ x0 1) (min 60) (max -60))))
@@ -192,7 +210,6 @@
       }
      ; dragging things
      [:h2#title {:style {:position :relative
-                         :text-align :center
                          :left (:x @origin)
                          :top (:y @origin)}}
       (if (= @urlkey "/")
