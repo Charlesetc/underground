@@ -49,16 +49,8 @@ function fix_text_areas() {
   }
 }
 
-function save_continually() {
-  underground.core.network_save_state();
-  window.setTimeout(save_continually, 1000);
-
-}
-
 function everything() {
   fix_text_areas();
-  
-  save_continually();
 }
 
 function highlight_text_area(id) {

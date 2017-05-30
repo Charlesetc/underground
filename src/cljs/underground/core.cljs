@@ -60,14 +60,6 @@
 (defn convert-id [id]
   (str "note" (name id)))
 
-(defn getparent [element class]
-  (if (-> element .-tagName lower-case (= "body"))
-    nil
-    (if (-> element .-className lower-case (= class))
-      element
-      (-> element .-parentNode getparent))))
-
-
 (defn ^:export network-save-state []
   (post "/slate/save" {:slate (get-state) :key @urlkey} (fn [e] (comment in the future, check if saved)))
   )
@@ -89,8 +81,11 @@
      :on-mouse-move #(js/removeclasshoveritem)
      :style {:left (-> @menu-position :x (- 100))
              :top (-> @menu-position :y (- 80))}}
-    [:a [:li {:on-click reset-menu-position
-              } "Arrow"]]
+    [:a [:li {:on-click (fn [e]
+                          (network-save-state)
+                          (reset-menu-position)
+                          )
+              } "Save"]]
     [:a [:li {:id :hoveritem
               :on-click #(let [my (.-clientY %)
                                mx (.-clientX %)
@@ -134,17 +129,18 @@
     :on-context-menu (fn [e]
                        (let [my (.-clientY e)
                              mx (.-clientX e)
-                             note (-> e .-target (getparent "note-content"))
-                             note-id (if note (-> note .-id (replace "note" "") keyword))
                              pos {:x mx :y my}]
                          (reset! menu-position pos)
-                         (reset! clicked-note note-id)
+                         ; (reset! clicked-note note-id)
                          (js/noclick e)))
     }
    (doall
     (for [id (keys @positions)]
       [:div.note
        {:key id
+        :on-context-menu (fn [e]
+                           (reset! clicked-note id)
+                           (reset! drag-target nil))
         :style (merge (calcposition id) {:z-index (if (or (= id @drag-target) (-> @positions id :edit)) 100 1)})}
        [:div.dragbar {:on-mouse-down (fn [e] (reset! drag-target id))}]
        [:div.note-content

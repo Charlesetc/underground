@@ -15,6 +15,7 @@
 
 (defn head []
   [:head
+   [:title "the underground narwhal"]
    [:meta {:charset "utf-8"}]
    [:meta {:name "viewport"
            :content "width=device-width, initial-scale=1"}]
