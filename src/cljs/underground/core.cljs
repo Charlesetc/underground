@@ -81,7 +81,13 @@
      :on-mouse-move #(js/removeclasshoveritem)
      :style {:left (-> @menu-position :x (- 100))
              :top (-> @menu-position :y (- 80))}}
-    [:a [:li {:on-click #(let [my (.-clientY %)
+    [:a [:li {:on-click (fn [e]
+                          (network-save-state)
+                          (reset-menu-position)
+                          )
+              } "Save"]]
+    [:a [:li {:id :hoveritem
+              :on-click #(let [my (.-clientY %)
                                mx (.-clientX %)
                                {ox :x oy :y} @origin
                                x (- mx ox)
@@ -92,15 +98,9 @@
                                   (-> @gen-id str keyword)
                                   {:x x :y y :md "## placeholder" :html "<h2>placeholder</h2>"})
                            )
-              } "New"]]
-    [:a [:li {:id :hoveritem
-              :on-click (fn [e]
-                          (network-save-state)
-                          (reset-menu-position)
-                          )
               :on-mouse-leave #(js/removeclasshoveritem)
               :on-mouse-move #(js/removeclasshoveritem)
-              } "Save"]]
+              } "New"]]
     (if @clicked-note 
       [:a [:li {:on-click (fn [e] 
                             (swap! positions dissoc @clicked-note)
