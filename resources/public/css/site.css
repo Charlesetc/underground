@@ -125,7 +125,8 @@ td, th {
   color:#9FA7FF;
   font-size: 40px;
   font-weight: 100;
-  z-index:1000;
+  z-index:100;
+  display: inline;
 }
 
 #title a {
