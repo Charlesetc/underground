@@ -1,8 +1,5 @@
 (ns underground.handler
-  (:require [underground.redis :as redis]
-            [compojure.core :refer [GET POST rfn defroutes]]
-            [compojure.route :refer [not-found resources]]
-            [clojure.java.shell :refer [sh]]
+  (:require [underground.redis :as redis] [compojure.core :refer [GET POST rfn defroutes]] [compojure.route :refer [not-found resources]] [clojure.java.shell :refer [sh]]
             [hiccup.page :refer [include-js include-css html5]]
             [underground.middleware :refer [wrap-middleware]]
             [ring.middleware.anti-forgery :refer [*anti-forgery-token*]]

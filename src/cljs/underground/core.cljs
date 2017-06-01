@@ -1,7 +1,7 @@
 (ns underground.core
     (:require [reagent.core :as reagent :refer [atom]]
               [reagent.session :as session]
-              [clojure.string :refer [lower-case replace]]
+              [clojure.string :refer [join lower-case replace split]]
               [clojure.walk :refer [keywordize-keys]]
               [ajax.core :refer [POST]]
               [goog.dom :as dom]
@@ -171,6 +171,11 @@
    ])
 
 (defn home-page []
+
+    (defn construction [parts]
+      (if (empty? parts) []
+      (-> parts rest construction (conj (reverse parts)))))
+
     [:div#home-page
      {
         :on-mouse-down #(if (-> % .-target .-id (= "notes"))
@@ -196,7 +201,13 @@
       (if (= @urlkey "/")
         "the underground narwhal"
         ; TODO: make each section a link!
-        (replace @urlkey "/" " / "))]
+        (let [parts (-> @urlkey (split "/") rest)
+              nextparts (construction (reverse parts))
+              parts (map vector parts nextparts)
+              ]
+          (for [[name href] parts]
+             [:a {:key name :href (str "/" (join "/" href))} name])
+          ))]
      [menu]
      [notes]
 ])
